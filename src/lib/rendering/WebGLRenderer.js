@@ -2,7 +2,8 @@ import { CircleShader } from '../shaders/CircleShader.js';
 import { LineShader } from '../shaders/LineShader.js';
 import { Texture } from '../kernels/Texture.js';
 import { Camera } from './Camera.js';
-import { gl } from '../webGL/webGL.js';
+
+import { mat3 } from 'gl-matrix-esm';
 
 /**
  * WebGL renderer.
@@ -27,11 +28,9 @@ export class WebGLRenderer {
         -1.0, -1.0
     ]);
 
-    constructor() {
-        this._canvas = document.getElementById("canvas");
-        this._canvas.style.display = "block";
-        this._canvas.classList.add("fullscreenCanvas");
-
+    constructor(canvas) {
+        this._canvas = canvas
+        this.gl = canvas.getContext("webgl2");
         this._camera = new Camera(this._canvas);
 
         this._graph = null;
@@ -55,8 +54,8 @@ export class WebGLRenderer {
         // so that they can be easily removed
         this._VBOs = [];
 
-        this._circleShader = new CircleShader();
-        this._lineShader = new LineShader();
+        this._circleShader = new CircleShader(this.gl);
+        this._lineShader = new LineShader(this.gl);
     }
 
     _createFallbackPositionsTextureFromGraph() {
@@ -78,7 +77,7 @@ export class WebGLRenderer {
         }
 
         if (this._fallbackPositionsTexture === null) {
-            this._fallbackPositionsTexture = Texture.createTextureFloat32_2(nodesMatrixSize, nodesMatrixSize, positionsMatrix, true);
+            this._fallbackPositionsTexture = Texture.createTextureFloat32_2(this.gl, nodesMatrixSize, nodesMatrixSize, positionsMatrix, true);
         }
         else {
             this._fallbackPositionsTexture.updateData(positionsMatrix);
@@ -91,17 +90,17 @@ export class WebGLRenderer {
      * Creates a VBO
      */
     _createVBO(data, dataPerUnit, type, stride, offset, attribute, useForInstance) {
-        const vbo = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+        const vbo = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
 
-        gl.enableVertexAttribArray(attribute);
-        gl.vertexAttribPointer(attribute, dataPerUnit, type, false, stride, offset);
+        this.gl.enableVertexAttribArray(attribute);
+        this.gl.vertexAttribPointer(attribute, dataPerUnit, type, false, stride, offset);
 
         if (useForInstance === true) {
-            gl.vertexAttribDivisor(attribute, 1);
+            this.gl.vertexAttribDivisor(attribute, 1);
         }
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
 
         return vbo;
     }
@@ -136,17 +135,17 @@ export class WebGLRenderer {
             positionsTextureNodeCoords.set(coords, i * 2);
         });
 
-        this._circleVAO = gl.createVertexArray();
-        gl.bindVertexArray(this._circleVAO);
+        this._circleVAO = this.gl.createVertexArray();
+        this.gl.bindVertexArray(this._circleVAO);
 
         // puts the vertex coordinates of the quad in vertex attrib 0
-        const quadVBO = this._createVBO(WebGLRenderer._QUAD_VERTICES, 2, gl.FLOAT, 0, 0, 0, false);
+        const quadVBO = this._createVBO(WebGLRenderer._QUAD_VERTICES, 2, this.gl.FLOAT, 0, 0, 0, false);
 
         // puts the coordinates where the shader can retrieve the node position
         // fom the positions texture into vertex attrib 1
-        const posTextureVBO = this._createVBO(positionsTextureNodeCoords, 2, gl.SHORT, 0, 0, 1, true);
+        const posTextureVBO = this._createVBO(positionsTextureNodeCoords, 2, this.gl.SHORT, 0, 0, 1, true);
 
-        gl.bindVertexArray(null);
+        this.gl.bindVertexArray(null);
 
         this._VBOs.push(quadVBO);
         this._VBOs.push(posTextureVBO);
@@ -171,21 +170,21 @@ export class WebGLRenderer {
             targetPositionsTexturesNodeCoords.set(targetCoords, i * 2);
         });
 
-        this._lineVAO = gl.createVertexArray();
-        gl.bindVertexArray(this._lineVAO);
+        this._lineVAO = this.gl.createVertexArray();
+        this.gl.bindVertexArray(this._lineVAO);
 
         // puts the vertex coordinates of the quad in vertex attrib 0
-        const quadVBO = this._createVBO(WebGLRenderer._QUAD_VERTICES, 2, gl.FLOAT, 0, 0, 0, false);
+        const quadVBO = this._createVBO(WebGLRenderer._QUAD_VERTICES, 2, this.gl.FLOAT, 0, 0, 0, false);
 
         // puts the coordinates where the shader can retrieve the edge start position
         // fom the positions texture into vertex attrib 1
-        const sourceTextureVBO = this._createVBO(sourcePositionsTexturesNodeCoords, 2, gl.SHORT, 0, 0, 1, true);
+        const sourceTextureVBO = this._createVBO(sourcePositionsTexturesNodeCoords, 2, this.gl.SHORT, 0, 0, 1, true);
 
         // puts the coordinates where the shader can retrieve the edge end position
         // fom the positions texture into vertex attrib 2
-        const targetTextureVBO = this._createVBO(targetPositionsTexturesNodeCoords, 2, gl.SHORT, 0, 0, 2, true);
+        const targetTextureVBO = this._createVBO(targetPositionsTexturesNodeCoords, 2, this.gl.SHORT, 0, 0, 2, true);
 
-        gl.bindVertexArray(null);
+        this.gl.bindVertexArray(null);
 
         this._VBOs.push(quadVBO);
         this._VBOs.push(sourceTextureVBO);
@@ -203,11 +202,11 @@ export class WebGLRenderer {
 
         // deletes buffers
         for (let buffer of this._VBOs) {
-            gl.deleteBuffer(buffer);
+            this.gl.deleteBuffer(buffer);
         }
 
-        gl.deleteVertexArray(this._lineVAO);
-        gl.deleteVertexArray(this._circleVAO);
+        this.gl.deleteVertexArray(this._lineVAO);
+        this.gl.deleteVertexArray(this._circleVAO);
         this._circleShader.delete();
         this._lineShader.delete();
     }
@@ -260,11 +259,11 @@ export class WebGLRenderer {
 
         this._circleShader.updateViewClipMatrix(viewClipMatrix);
 
-        gl.bindVertexArray(this._circleVAO);
+        this.gl.bindVertexArray(this._circleVAO);
 
-        gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this._graph.nodes.length);
+        this.gl.drawArraysInstanced(this.gl.TRIANGLES, 0, 6, this._graph.nodes.length);
 
-        gl.bindVertexArray(null);
+        this.gl.bindVertexArray(null);
         this._circleShader.stop();
     }
 
@@ -273,18 +272,18 @@ export class WebGLRenderer {
 
         this._lineShader.updateViewClipMatrix(viewClipMatrix);
 
-        gl.bindVertexArray(this._lineVAO);
+        this.gl.bindVertexArray(this._lineVAO);
 
-        gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this._graph.edges.length);
+        this.gl.drawArraysInstanced(this.gl.TRIANGLES, 0, 6, this._graph.edges.length);
 
-        gl.bindVertexArray(null);
+        this.gl.bindVertexArray(null);
         this._lineShader.stop();
     }
 
     render() {
         // enable alpha blending
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
         if (this._positionsTexture === null) {
             this._positionsTexture = this._createFallbackPositionsTextureFromGraph();
@@ -293,24 +292,24 @@ export class WebGLRenderer {
         mat3.mul(viewClipMatrix, this._clipMatrix, this._camera.getViewMatrix());
 
         // bind position texture
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this._positionsTexture.getTextureId());
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this._positionsTexture.getTextureId());
 
-        gl.viewport(0, 0,
-            gl.drawingBufferWidth, gl.drawingBufferHeight);
-        gl.clearColor(1.0, 1.0, 1.0, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        this.gl.viewport(0, 0,
+            this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+        this.gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
         this._renderEdges(viewClipMatrix);
         this._renderNodes(viewClipMatrix);
 
-        gl.bindTexture(gl.TEXTURE_2D, null);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
 
         // used and now expired
         this._positionsTexture = null;
 
         // disable alpha blending
-        gl.disable(gl.BLEND);
+        this.gl.disable(this.gl.BLEND);
     }
 
     /**

@@ -1,6 +1,4 @@
 
-import { gl } from '../webGL/webGL.js';
-
 /**
  * Shader util class. Used to create shaders.
  * 
@@ -16,19 +14,19 @@ export class Shader {
      */
     _compileShader(shaderSource, shaderType) {
         // Create the shader object
-        const shader = gl.createShader(shaderType);
+        const shader = this.gl.createShader(shaderType);
 
         // Set the shader source code.
-        gl.shaderSource(shader, shaderSource);
+        this.gl.shaderSource(shader, shaderSource);
 
         // Compile the shader
-        gl.compileShader(shader);
+        this.gl.compileShader(shader);
 
         // Check if it compiled
-        const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+        const success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS);
         if (!success) {
             // Something went wrong during compilation; get the error
-            throw "could not compile shader:" + gl.getShaderInfoLog(shader);
+            throw "could not compile shader:" + this.gl.getShaderInfoLog(shader);
         }
 
         return shader;
@@ -42,20 +40,20 @@ export class Shader {
      */
     _createProgram(vertexShader, fragmentShader) {
         // create a program.
-        const program = gl.createProgram();
+        const program = this.gl.createProgram();
         
         // attach the shaders.
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
+        this.gl.attachShader(program, vertexShader);
+        this.gl.attachShader(program, fragmentShader);
         
         // link the program.
-        gl.linkProgram(program);
+        this.gl.linkProgram(program);
         
         // Check if it linked.
-        const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+        const success = this.gl.getProgramParameter(program, this.gl.LINK_STATUS);
         if (!success) {
             // something went wrong with the link
-            throw ("program filed to link:" + gl.getProgramInfoLog (program));
+            throw ("program filed to link:" + this.gl.getProgramInfoLog (program));
         }
         
         return program;
@@ -66,12 +64,13 @@ export class Shader {
      * @param {string} vertexShaderSource the code for the vertex shader
      * @param {string} fragmentShaderCode the code for the fragment shader
      */
-    constructor(vertexShaderSource, fragmentShaderCode) {
-        const vertexShader = this._compileShader(vertexShaderSource, gl.VERTEX_SHADER);
-        const fragmentShader = this._compileShader(fragmentShaderCode, gl.FRAGMENT_SHADER);
+    constructor(gl, vertexShaderSource, fragmentShaderCode) {
+        this.gl = gl;
+        const vertexShader = this._compileShader(vertexShaderSource, this.gl.VERTEX_SHADER);
+        const fragmentShader = this._compileShader(fragmentShaderCode, this.gl.FRAGMENT_SHADER);
         this._program = this._createProgram(vertexShader, fragmentShader);
-        gl.deleteShader(vertexShader);
-        gl.deleteShader(fragmentShader);
+        this.gl.deleteShader(vertexShader);
+        this.gl.deleteShader(fragmentShader);
     }
 
     /**
@@ -81,7 +80,7 @@ export class Shader {
      */
     setVec2(name, value) {
         const location = this.getUniformLocationFor(name)
-        gl.uniform2fv(location, value);
+        this.gl.uniform2fv(location, value);
     }
 
     /**
@@ -90,7 +89,7 @@ export class Shader {
      * @param {Float32Array} value the value used to set the uniform
      */
     setVec2Index(index, value) {
-        gl.uniform2fv(index, value);
+        this.gl.uniform2fv(index, value);
     }
 
     /**
@@ -100,7 +99,7 @@ export class Shader {
      */
     setIntVec2(name, value) {
         const location = this.getUniformLocationFor(name);
-        gl.uniform2iv(location, value);
+        this.gl.uniform2iv(location, value);
     }
 
     /**
@@ -110,20 +109,20 @@ export class Shader {
      */
     setFloat(name, value) {
         const location = this.getUniformLocationFor(name);
-        gl.uniform1f(location, value);
+        this.gl.uniform1f(location, value);
     }
 
     setFloatIndex(index, value) {
-        gl.uniform1f(index, value);
+        this.gl.uniform1f(index, value);
     }
 
     setInt(name, value) {
         const location = this.getUniformLocationFor(name);
-        gl.uniform1i(location, value);
+        this.gl.uniform1i(location, value);
     }
 
     setIntIndex(index, value) {
-        gl.uniform1i(index, value);
+        this.gl.uniform1i(index, value);
     }
 
     /**
@@ -133,7 +132,7 @@ export class Shader {
      */
     setMat3(name, value) {
         const location = this.getUniformLocationFor(name);
-        gl.uniformMatrix3fv(location, false, value);
+        this.gl.uniformMatrix3fv(location, false, value);
     }
 
     /**
@@ -142,7 +141,7 @@ export class Shader {
      * @param {mat3} value the value used to set the uniform
      */
     setMat3Index(index, value) {
-        gl.uniformMatrix3fv(index, false, value);
+        this.gl.uniformMatrix3fv(index, false, value);
     }
 
     /**
@@ -152,7 +151,7 @@ export class Shader {
      * @throws {Error} if there is no variable with the given name
      */
     getUniformLocationFor(name) {
-        const location = gl.getUniformLocation(this._program, name);
+        const location = this.gl.getUniformLocation(this._program, name);
         if (location === null) {
             throw new Error(`No such uniform with name ${name}`);
         }
@@ -164,21 +163,21 @@ export class Shader {
      * Sets this shader as the current one.
      */
     use() {
-        gl.useProgram(this._program);
+        this.gl.useProgram(this._program);
     }
 
     /**
      * This shader is no longer the current one.
      */
     stop() {
-        gl.useProgram(null);
+        this.gl.useProgram(null);
     }
 
     /**
      * Deletes this Shader.
      */
     delete() {
-        gl.deleteProgram(this._program);
+        this.gl.deleteProgram(this._program);
         this._program = null;
     }
 }

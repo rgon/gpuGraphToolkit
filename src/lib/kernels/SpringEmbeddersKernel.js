@@ -6,8 +6,8 @@ import { Kernel } from './Kernel.js';
  */
 export class SpringEmbeddersKernel extends Kernel {
 
-    constructor() {
-        super(SpringEmbeddersKernel.kernelCode);
+    constructor(gl) {
+        super(SpringEmbeddersKernel.kernelCode, gl);
     }
 
     setProperties(properties) {

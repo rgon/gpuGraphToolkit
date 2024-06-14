@@ -1,3 +1,4 @@
+import { vec3, mat3 } from 'gl-matrix-esm';
 /**
  * This class handles a simple camera.
  * The camera can be moved around by dragging the mouse on the canvas

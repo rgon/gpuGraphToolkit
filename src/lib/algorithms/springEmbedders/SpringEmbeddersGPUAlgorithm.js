@@ -2,7 +2,9 @@ import { SpringEmbeddersKernel } from "../../kernels/SpringEmbeddersKernel.js";
 import { Texture } from "../../kernels/Texture.js";
 
 export class SpringEmbeddersGPUAlgorithm {
-  constructor(graph, width, height) {
+  constructor(gl, renderer, graph, width, height) {
+    this.gl = gl;
+    this.renderer = renderer;
     this._graph = null;
     this._width = width;
     this._height = height;
@@ -20,7 +22,7 @@ export class SpringEmbeddersGPUAlgorithm {
     this._adjacencyTexture = null;
     this._nodesTexture = null;
 
-    this._kernel = new SpringEmbeddersKernel();
+    this._kernel = new SpringEmbeddersKernel(gl);
     this._kernel.setProperties(this._properties);
 
     this.setGraph(graph);
@@ -136,24 +138,28 @@ export class SpringEmbeddersGPUAlgorithm {
     }
 
     this._positionsTexture = Texture.createTextureFloat32_2(
+      this.gl,
       nodesMatrixSize,
       nodesMatrixSize,
       positionsMatrix,
       true
     );
     this._outputTexture = Texture.createTextureFloat32_2(
+      this.gl,
       nodesMatrixSize,
       nodesMatrixSize,
       positionsMatrix,
       true
     );
     this._adjacencyTexture = Texture.createTextureUint8_2(
+      this.gl,
       adjacencyMatrixSize,
       adjacencyMatrixSize,
       adjacencyMatrix,
       false
     );
     this._nodesTexture = Texture.createTextureUint16_4(
+      this.gl,
       nodesMatrixSize,
       nodesMatrixSize,
       nodesMatrix,
@@ -193,11 +199,11 @@ export class SpringEmbeddersGPUAlgorithm {
 
     this._kernel.execute();
 
-    const renderer = ctrl.renderer;
+    const renderer = this.renderer;
 
     if (renderer.supportsDirectRendering()) {
       // algorithms support reading nodes positions from texture
-      ctrl.renderer.setPositionsTexture(this._outputTexture);
+      this.renderer.setPositionsTexture(this._outputTexture);
     } else {
       const positions = this._outputTexture.getData();
       for (let i = 0; i < this._graph.nodes.length; i++) {

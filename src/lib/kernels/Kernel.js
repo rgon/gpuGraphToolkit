@@ -1,5 +1,4 @@
 import { Shader } from '../shaders/Shader.js';
-import { gl } from '../webGL/webGL.js';
 
 /**
  * A function that is executed on the GPU.
@@ -34,24 +33,24 @@ export class Kernel {
      */
     static _VAO = null;
 
-    static _getVAO() {
+    _getVAO() {
         if (Kernel._VAO === null) {
             // create VAO
-            Kernel._VAO = gl.createVertexArray();
-            gl.bindVertexArray(Kernel._VAO);
+            Kernel._VAO = this.gl.createVertexArray();
+            this.gl.bindVertexArray(Kernel._VAO);
 
             // create VBO and buffer data in it
-            const VBO = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, VBO);
-            gl.bufferData(gl.ARRAY_BUFFER, Kernel._QUAD_VERTICES, gl.STATIC_DRAW);
+            const VBO = this.gl.createBuffer();
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, VBO);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, Kernel._QUAD_VERTICES, this.gl.STATIC_DRAW);
 
             // setup buffer data
-            gl.enableVertexAttribArray(0);
-            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+            this.gl.enableVertexAttribArray(0);
+            this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
 
             // unbind
-            gl.bindBuffer(gl.ARRAY_BUFFER, null);
-            gl.bindVertexArray(null);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+            this.gl.bindVertexArray(null);
         }
 
         return Kernel._VAO
@@ -61,9 +60,10 @@ export class Kernel {
      * Creates a new kernel
      * @param {string} source glsl source code for the kernel. 
      */
-    constructor(source) {
+    constructor(source, gl) {
+        this.gl = gl
         this._outputTexture = null;
-        this._shader = new Shader(Kernel._VERTEX_SHADER, source);
+        this._shader = new Shader(this.gl, Kernel._VERTEX_SHADER, source);
 
         this._usedTextures = new Set();
         this._uniformNameToLocation = new Map();
@@ -140,27 +140,27 @@ export class Kernel {
             throw new Error("no ouput texture for this kernel");
         }
 
-        gl.viewport(0, 0, this._outputTexture.getWidth(), this._outputTexture.getHeight());
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this._outputTexture.getFboId());
+        this.gl.viewport(0, 0, this._outputTexture.getWidth(), this._outputTexture.getHeight());
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._outputTexture.getFboId());
         
         // binds texture to their relative index
         for (let [_, {index, texture}] of this._textureNameToTextureInfo) {
-            gl.activeTexture(gl.TEXTURE0 + index);
-            gl.bindTexture(gl.TEXTURE_2D, texture.getTextureId());
+            this.gl.activeTexture(this.gl.TEXTURE0 + index);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, texture.getTextureId());
         }
 
         this._shader.use();
 
-        gl.bindVertexArray(Kernel._getVAO());
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
-        gl.bindVertexArray(null);
+        this.gl.bindVertexArray(this._getVAO());
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+        this.gl.bindVertexArray(null);
 
         // unbind
         this._shader.stop();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
         for (let [_, {index, texture}] of this._textureNameToTextureInfo) {
-            gl.activeTexture(gl.TEXTURE0 + index);
-            gl.bindTexture(gl.TEXTURE_2D, null);
+            this.gl.activeTexture(this.gl.TEXTURE0 + index);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         }
     }
 

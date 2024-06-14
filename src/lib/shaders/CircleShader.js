@@ -5,8 +5,8 @@ import { Shader } from './Shader.js';
  */
 export class CircleShader extends Shader {
 
-    constructor() {
-        super(CircleShader._VERTEX_SHADER, CircleShader._FRAGMENT_SHADER);
+    constructor(gl) {
+        super(gl, CircleShader._VERTEX_SHADER, CircleShader._FRAGMENT_SHADER);
         
         this.use();
         this._viewClipMatrixIndex = this.getUniformLocationFor("viewClipMatrix");

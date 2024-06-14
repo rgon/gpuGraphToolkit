@@ -5,8 +5,8 @@ import { Shader } from './Shader.js';
  */
 export class LineShader extends Shader {
 
-    constructor() {
-        super(LineShader._VERTEX_SHADER, LineShader._FRAGMENT_SHADER);
+    constructor(gl) {
+        super(gl, LineShader._VERTEX_SHADER, LineShader._FRAGMENT_SHADER);
 
         this.use();
         this._viewClipMatrixIndex = this.getUniformLocationFor("viewClipMatrix");

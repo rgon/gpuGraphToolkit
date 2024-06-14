@@ -1,107 +1,79 @@
 import { Graph } from "../dataStructures/graph/Graph.js";
 import { GraphLoader } from "../dataStructures/graph/GraphLoader.js";
 import { WebGLRenderer } from "../rendering/WebGLRenderer.js";
-import { D3Renderer } from "../rendering/D3Renderer.js";
+// import { D3Renderer } from "../rendering/D3Renderer.js";
 import { RaphsonNewtonAlgorithm } from "../algorithms/RaphsonNewtonAlgorithm.js";
 import { SpringEmbeddersAlgorithm } from "../algorithms/springEmbedders/SpringEmbeddersAlgorithm.js";
 import { SpringEmbeddersTransferrable } from "../algorithms/springEmbedders/SpringEmbeddersWorkerTransferrable.js";
 import { SpringEmbeddersGPUAlgorithm } from "../algorithms/springEmbedders/SpringEmbeddersGPUAlgorithm.js";
 import { BarnesHut } from "../algorithms/barnesHut/BarnesHut.js";
 
-class Controller {
-  constructor() {
+export class Controller {
+  compatibility = {
+    webGL2: false,
+    colorBufferFloatExtension: false,
+  }
+
+  constructor(canvas, width, height) {
+    this.width = width;
+    this.height = height;
+
+    this.canvas = canvas;
+    this.gl = canvas.getContext("webgl2");
+    if (this.gl) {
+      this.compatibility.webGL2 = true;
+      this.gl.disable(this.gl.DEPTH_TEST);
+      this.gl.pixelStorei(this.gl.PACK_ALIGNMENT, 1);
+      this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
+
+      if (this.gl.getExtension("EXT_color_buffer_float")) {
+        this.compatibility.colorBufferFloatExtension = true;
+      }
+    }
+
     this.graph = new Graph();
-    this.renderer = new D3Renderer();
+    this.renderer = new WebGLRenderer(this.canvas); // D3Renderer();
+    
+    this.currentProperties = {}
     this.algorithm = new RaphsonNewtonAlgorithm(
       this.graph,
-      window.innerWidth,
-      window.innerHeight
+      this.width,
+      this.height
     );
-
-    window.addEventListener("resize", () => this.onWindowSizeChange());
 
     this.loader = new GraphLoader();
 
     this._animationFrameId = null;
 
-    this.setSpringEmbeddersSettingsVisibility(false);
     this._timeStamp = 0;
   }
+  onWindowSizeChange(width, height) {
+    this.width = width;
+    this.height = height;
 
-  openNav() {
-    document.getElementById("sidemenu").style.width = "250px";
+    this.renderer.setSize(width, height);
+    this.algorithm.onCanvasSizeChanged(width, height);
   }
 
-  closeNav() {
-    document.getElementById("sidemenu").style.width = "0";
-  }
-
-  showError(msg) {
-    document.getElementById("errorDialog").style.top = "0";
-
-    document.getElementById("errorMsg").innerText = msg;
-  }
-
-  closeErrorDialog() {
-    document.getElementById("errorDialog").style.top = "-100%";
-  }
-
-  onWindowSizeChange() {
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.algorithm.onCanvasSizeChanged(window.innerWidth, window.innerHeight);
-  }
-
-  setSpringEmbeddersSettingsVisibility(visibility) {
-    document.getElementById("springEmbeddersSettings").style.display =
-      visibility ? "block" : "none";
-  }
-
-  onAlgorithmSpeedChanged(value) {
-    const speed = parseInt(value) / 10;
-
-    document.getElementById("renderSpeed").textContent = `${
-      Math.round((speed + Number.EPSILON) * 100) / 100
-    }%`;
-    this.algorithm.setProperties(this._readAlgorithmProperties());
-  }
-
-  onConfirmSpringEmbeddersSettings() {
-    this.algorithm.setProperties(this._readAlgorithmProperties());
-  }
-
-  _readAlgorithmProperties() {
-    const speed =
-      parseInt(document.getElementById("algorithmSpeed").value) / 1000.0;
-    const springRestLength = parseFloat(
-      document.getElementById("springRestLength").value
-    );
-    const springDampening = parseFloat(
-      document.getElementById("springDampening").value
-    );
-    const charge = parseFloat(document.getElementById("charge").value);
-    const newParams = {
-      speed,
-      springRestLength,
-      springDampening,
-      charge,
-    };
-    const theta = document.getElementById("theta");
-    if (theta) {
-      newParams.theta = theta.value;
-    }
-    return newParams;
+  setAlgorithmProperties(props) {
+    this.currentProperties = props;
+    this.algorithm.setProperties(props);
   }
 
   _updateStats(totalTime, timeToCompute, timeToRender) {
-    document.getElementById("totalTime").innerText = totalTime.toFixed(3);
-    document.getElementById("algoTime").innerText = timeToCompute.toFixed(3);
-    document.getElementById("renderTime").innerText = timeToRender.toFixed(3);
+    // document.getElementById("totalTime").innerText = totalTime.toFixed(3);
+    // document.getElementById("algoTime").innerText = timeToCompute.toFixed(3);
+    // document.getElementById("renderTime").innerText = timeToRender.toFixed(3);
   }
 
   _resetStats() {
-    document.getElementById("totalTime").innerText = "";
-    document.getElementById("algoTime").innerText = "";
-    document.getElementById("renderTime").innerText = "";
+    // document.getElementById("totalTime").innerText = "";
+    // document.getElementById("algoTime").innerText = "";
+    // document.getElementById("renderTime").innerText = "";
+  }
+
+  showError(err) {
+    alert(err);
   }
 
   onPredefinedGraphSelectChange(value) {
@@ -122,47 +94,40 @@ class Controller {
     if (value === "Tutte") {
       this.algorithm = new RaphsonNewtonAlgorithm(
         this.graph,
-        window.innerWidth,
-        window.innerHeight
+        this.width,
+        this.height
       );
-      this.setSpringEmbeddersSettingsVisibility(false);
     } else if (value === "SpringEmbedders") {
       this.algorithm = new SpringEmbeddersAlgorithm(
         this.graph,
-        window.innerWidth,
-        window.innerHeight
+        this.width,
+        this.height
       );
-      this.setSpringEmbeddersSettingsVisibility(true);
     } else if (value === "SpringEmbeddersTrans") {
       this.algorithm = new SpringEmbeddersTransferrable(
         this.graph,
-        window.innerWidth,
-        window.innerHeight
+        this.width,
+        this.height
       );
-      this.setSpringEmbeddersSettingsVisibility(true);
     } else if (value === "SpringEmbeddersGPU") {
       this.algorithm = new SpringEmbeddersGPUAlgorithm(
+        this.gl,
+        this.renderer,
         this.graph,
-        window.innerWidth,
-        window.innerHeight
+        this.width,
+        this.height
       );
-      this.setSpringEmbeddersSettingsVisibility(true);
     } else if (value === "BarnesHut") {
       this._addTheta();
 
       this.algorithm = new BarnesHut(
         this.graph,
-        window.innerWidth,
-        window.innerHeight
+        this.width,
+        this.height
       );
-      this.setSpringEmbeddersSettingsVisibility(true);
     }
 
-    if (value != "BarnesHut") {
-      this._removeTheta();
-    }
-
-    this.algorithm.setProperties(this._readAlgorithmProperties());
+    this.algorithm.setProperties(this.currentProperties);
   }
 
   onRendererChanged(value) {
@@ -171,13 +136,14 @@ class Controller {
     }
 
     if (value === "d3") {
-      this.renderer = new D3Renderer();
+      // this.renderer = new D3Renderer();
+      alert("D3 renderer is not available at the moment.");
     } else if (value === "webgl") {
-      this.renderer = new WebGLRenderer();
+      this.renderer = new WebGLRenderer(this.canvas);
     }
 
     this.renderer.setGraph(this.graph);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(this.width, this.height);
   }
 
   onFileSelect(evt) {
@@ -188,28 +154,20 @@ class Controller {
       .loadFromFile(file)
       .then((graph) => this.drawGraph(graph))
       .catch((err) => this.showError(err));
+
+      // this.loader
+      // .loadGLMFromServer(requestQuery)
+      // .then((graph) => this.drawGraph(graph))
+      // .catch((err) => this.showError(err));
   }
 
-  onGetFromServer() {
-    const numOfNodes = document.getElementById("numOfNodes").value;
-    const numOfEdges = document.getElementById("numOfEdges").value;
+  // onShowNodeLabelsChange(chkbox) {
+  //   this.renderer.setRenderNodeLabels(chkbox.checked);
+  // }
 
-    const requestPath = document.getElementById("serverLocation").value;
-    const requestQuery = `http://${requestPath}?nodes=${numOfNodes}&edges=${numOfEdges}`;
-
-    this.loader
-      .loadGLMFromServer(requestQuery)
-      .then((graph) => this.drawGraph(graph))
-      .catch((err) => this.showError(err));
-  }
-
-  onShowNodeLabelsChange(chkbox) {
-    this.renderer.setRenderNodeLabels(chkbox.checked);
-  }
-
-  onShowEdgeLabelsChange(chkbox) {
-    this.renderer.setRenderEdgeLabels(chkbox.checked);
-  }
+  // onShowEdgeLabelsChange(chkbox) {
+  //   this.renderer.setRenderEdgeLabels(chkbox.checked);
+  // }
 
   drawGraph(graph) {
     cancelAnimationFrame(this._animationFrameId);
@@ -219,7 +177,6 @@ class Controller {
     this._resetStats();
 
     this.graph = graph;
-    this.closeNav();
 
     this.renderer.setGraph(graph);
     this.algorithm.setGraph(graph);
@@ -259,26 +216,4 @@ class Controller {
     this._animationFrameId = requestAnimationFrame(renderFunction);
   }
 
-  _addTheta = () => {
-    const father = document.getElementById("thetaFather");
-    const theta = document.createElement("input");
-    theta.type = "number";
-    theta.value = 0.5;
-    theta.className = "controllerInput";
-    theta.id = "theta";
-    const text = document.createElement("span");
-    text.textContent = "Theta: ";
-    text.id = "thetaText";
-    father.appendChild(text);
-    father.appendChild(theta);
-  };
-
-  _removeTheta = () => {
-    const father = document.getElementById("thetaFather");
-    while (father.firstChild) {
-      father.removeChild(father.firstChild);
-    }
-  };
 }
-
-export const ctrl = new Controller();

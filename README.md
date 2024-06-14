@@ -3,6 +3,20 @@ A svelte/ts library that implements a GPU-rendered node graph. An alternative to
 
 Forked from simCecca/Tutte-Barycenter-Draw. Deprecates d3 support.
 
+### TODO:
++ [x] re-package
++ [x] port base to Svelte
++ [x] resize event -> to new method
++ [x] get working again 
++ [x] ensure able to modify algorithm in realtime
++ [ ] fix changing speed causes rendering error. Units probably wrong
++ [ ] full TS port
++ [ ] lib usage: load graph externally etc
++ [ ] return D3 support
+### Goals
++ [ ] sveltekit independance (build for any)
++ [ ] package and build
+
 ## GPU Algorithm
 An implementation of the paper [Improved Efficiency of Spring Embedders: Taking Advantage of GPU programming](https://www.labri.fr/perso/melancon/Visual_Analytics_Course/lib/exe/fetch.php?media=bordeaux20132014:auber_chiricota_2007_gpu.pdf) using JavaScript and WebGL2.
 

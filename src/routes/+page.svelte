@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { Controller } from "$lib/controllers/Controller.js";
+    import { GraphController } from "$lib/index.js";
     import { onMount } from "svelte";
-    import type { AlgorithmProperties, Stats } from "$lib/types.js";
+    import type { Stats, AlgorithmProperties } from "$lib/types.js";
     
     let canvasElement: HTMLCanvasElement;
-    let ctrl:Controller
+    let ctrl:GraphController
     
     const DEFAULT_GRAPH_BASE = './defaultGraphs'
     
@@ -39,15 +39,14 @@
         totalTime: 0
     }
 
-    // --- Controls
-    let algorithmProperties:AlgorithmProperties = {
-        speed: 1000,
-        springRestLength: 15,
-        springDampening: 0.125,
-        charge: 75,
+    let algorithmProperties: AlgorithmProperties = {
+        speed: 1,
+        springRestLength: 100,
+        springDampening: 0.1,
+        charge: 100,
         theta: 0.5
     }
-    $: ctrl?.setAlgorithmProperties(algorithmProperties)
+    $: if (ctrl) ctrl.algorithmProperties = algorithmProperties
 
     let w:number, h:number
     $: ctrl?.onWindowSizeChange(w, h)
@@ -57,7 +56,11 @@
     let sideMenuVisible: boolean = true
 
     onMount(() => {
-        ctrl = new Controller(canvasElement, w, h);
+        ctrl = new GraphController(canvasElement, w, h);
+
+        ctrl.onStatsChange = (newStats:Stats) => {
+            stats = newStats
+        }
 
         if (!ctrl.compatibility.webGL2) {
             errorMsg = "Your browser does not support WebGL2. GPU based algorithms and rendering will not be available"
@@ -76,6 +79,10 @@
 
     function closeNav() {
         sideMenuVisible = false
+    }
+
+    function selectGraph (event: any) {
+        ctrl?.onPredefinedGraphSelectChange(event.target?.value)
     }
 </script>
 
@@ -99,7 +106,7 @@
                 />
              -->
             <h4>Predefined graphs</h4>
-            <select on:change={(event) => ctrl?.onPredefinedGraphSelectChange(event.target?.value)}>
+            <select on:change={selectGraph}>
                 <option value="" selected disabled>
                     Choose a predefined graph
                 </option>
@@ -163,20 +170,22 @@
                 />
             {/if}
 
-            {#if selectedAlgorithm === "SpringEmbeddersGPU" || selectedAlgorithm === "SpringEmbedders" || selectedAlgorithm === "BarnesHut"}
+            <!-- {#if selectedAlgorithm === "SpringEmbeddersGPU" || selectedAlgorithm === "SpringEmbedders" || selectedAlgorithm === "BarnesHut"}
             <input
             type="button"
             value="Apply"
-            on:click={() => ctrl?.setAlgorithmProperties(algorithmProperties)}
+            on:click={() => ctrl?.setalgorithmProperties(algorithmProperties)}
             />
-            {/if}
+            {/if} -->
         </section>
                 
         <section>
             <h3>Stats</h3>
-            <p>Algorithm time: {stats.algoTime} ms</p>
-            <p>Render time: {stats.renderTime} ms</p>
-            <p>Total time: {stats.totalTime} ms</p>
+            <p>Algorithm time: {stats.algoTime.toFixed(3)} ms</p>
+            <p>Render time: {stats.renderTime.toFixed(3)} ms</p>
+            <p>Total time: {stats.totalTime.toFixed(3)} ms</p>
+            <!-- calc fps from totalTime in ms -->
+            <p>FPS: {(1000 / stats.totalTime).toFixed(3)}</p>
         </section>
     </div>
 </div>

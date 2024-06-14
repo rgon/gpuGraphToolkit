@@ -226,6 +226,9 @@ export class SpringEmbeddersGPUAlgorithm {
   }
 
   onRemove() {
+    if (this._kernel === null) {
+      return; // already removed
+    }
     this._kernel.delete();
     this._kernel = null;
     if (this._nodesTexture === null) {

@@ -13,6 +13,8 @@ Forked from simCecca/Tutte-Barycenter-Draw. Deprecates d3 support.
 + [ ] full TS port
 + [ ] lib usage: load graph externally etc
 + [ ] return D3 support
++ [ ] Interactivity: on-click, on-hover labels
++ [ ] node config: size, color, etc
 ### Goals
 + [ ] sveltekit independance (build for any)
 + [ ] package and build
